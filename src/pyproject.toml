@@ -1,0 +1,30 @@
+[project]
+name = "gldx-py-sandbox"
+version = "1.0.0"
+description = "Python 開発環境の確認用サンプル（FastAPI）"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=1.12.1",
+    "fastapi[standard]>=0.143.0",
+    "psycopg[binary]>=3.3.6",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.10",
+]

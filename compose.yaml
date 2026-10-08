@@ -1,0 +1,64 @@
+# Python 開発環境（Gold LINK DX）
+# 使い方は README.md を参照。普段は .\dev.ps1 up / down で操作する。
+#
+#   app      … Python + FastAPI（uv で管理）  http://localhost:8000（API の説明 /docs）
+#   db       … PostgreSQL 17                  localhost:5434
+#   mailpit  … 送信メールを受け止めて表示する  http://localhost:8027
+#
+# ポートはすべて 127.0.0.1 に限定（同じネットワークの他の PC からは見えない）
+
+name: gldx-py
+
+services:
+  app:
+    build:
+      context: ./docker/python
+      args:
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.13}
+    working_dir: /app
+    command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports:
+      - "127.0.0.1:${APP_PORT:-8000}:8000"
+    volumes:
+      - ./src:/app
+      # 仮想環境はコンテナ側に置く（Windows のフォルダに置くと遅く、壊れやすいため）
+      - venv:/venv
+      - uv-cache:/root/.cache/uv
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-app}:${DB_PASSWORD:-app}@db:5432/${DB_NAME:-app}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      # Claude API を使うサンプル用。空なら /api/summarize は「未設定」と返す
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Windows のフォルダを監視するときに必要（ファイル変更の検知）
+      WATCHFILES_FORCE_POLLING: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17-alpine
+    ports:
+      - "127.0.0.1:${DB_PORT:-5434}:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER:-app}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-app}
+      POSTGRES_DB: ${DB_NAME:-app}
+      TZ: Asia/Tokyo
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-app} -d ${DB_NAME:-app}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-8027}:8025"
+
+volumes:
+  venv:
+  uv-cache:
+  db-data:
