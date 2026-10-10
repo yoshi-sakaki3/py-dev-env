@@ -3,10 +3,11 @@
   使い方:  .\dev.ps1 <コマンド> [引数]
   一覧:    .\dev.ps1 help
 #>
-param(
-    [Parameter(Position = 0)][string]$Command = 'help',
-    [Parameter(Position = 1, ValueFromRemainingArguments = $true)][string[]]$Rest
-)
+# 引数は param() で受けず、そのまま読む。
+# param() を使うと、-c・-e・-v のようにハイフンで始まる指定を PowerShell がこのスクリプトあての指定と解釈して、
+# エラーになったり、黙って消えたりするため（例：python -c ...、mvn -e ...）。
+$Command = if ($args.Count -gt 0) { [string]$args[0] } else { 'help' }
+$Rest = @(if ($args.Count -gt 1) { $args[1..($args.Count - 1)] })
 
 $ErrorActionPreference = 'Stop'
 Set-Location -Path $PSScriptRoot
